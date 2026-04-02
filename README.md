@@ -59,7 +59,7 @@ Start the single-page UI:
 python3 -m market_monitor.app.main serve --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000` and use the page to run the pipeline, inspect stored articles, and refresh the digest.
+Open `http://127.0.0.1:8000` and use the page to run the pipeline, inspect stored articles, and refresh the digest. The app retains a rolling 7-day article history and exposes 24h, 3d, and 7d views.
 
 ## Deploy
 

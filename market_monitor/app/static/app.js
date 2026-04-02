@@ -10,7 +10,6 @@ const WINDOW_LABELS = {
   "24h": "Last 24 Hours",
   "3d": "Last 3 Days",
   "7d": "Last Week",
-  "30d": "Last Month",
 };
 
 function setStatus(message) {

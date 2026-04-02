@@ -46,7 +46,7 @@ DEDUPLICATION_LOOKBACK_HOURS: Final[int] = int(
     os.getenv("MARKET_MONITOR_DEDUPLICATION_LOOKBACK_HOURS", "48")
 )
 MAX_ARTICLE_AGE_DAYS: Final[int] = int(
-    os.getenv("MARKET_MONITOR_MAX_ARTICLE_AGE_DAYS", "30")
+    os.getenv("MARKET_MONITOR_MAX_ARTICLE_AGE_DAYS", "7")
 )
 
 TRUSTED_SOURCE_BONUS: Final[dict[str, int]] = {

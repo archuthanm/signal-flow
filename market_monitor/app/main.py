@@ -10,10 +10,16 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import desc, select
+from sqlalchemy import delete, desc, select
 
 from market_monitor.app.collectors.rss_collector import RSSCollector
-from market_monitor.app.config import APP_NAME, MIN_RELEVANCE_FOR_DIGEST, TEMPLATE_DIR, TIMEZONE
+from market_monitor.app.config import (
+    APP_NAME,
+    MAX_ARTICLE_AGE_DAYS,
+    MIN_RELEVANCE_FOR_DIGEST,
+    TEMPLATE_DIR,
+    TIMEZONE,
+)
 from market_monitor.app.database import get_session, init_db
 from market_monitor.app.filters.dedupe import DuplicateDetector
 from market_monitor.app.filters.relevance import RelevanceScorer
@@ -30,7 +36,6 @@ WINDOW_PRESETS = {
     "24h": timedelta(days=1),
     "3d": timedelta(days=3),
     "7d": timedelta(days=7),
-    "30d": timedelta(days=30),
 }
 
 
@@ -165,6 +170,7 @@ def strip_leading_source_marker(text: str, source: str) -> str:
 def run_pipeline() -> dict[str, str | int]:
     init_db()
     stats = ingest_articles()
+    prune_old_articles()
     digest_path = generate_digest()
     return {**stats, "digest_path": str(digest_path)}
 
@@ -173,6 +179,16 @@ def resolve_window(window: str) -> tuple[str, timedelta]:
     if window not in WINDOW_PRESETS:
         raise ValueError(f"Unsupported window: {window}")
     return window, WINDOW_PRESETS[window]
+
+
+def prune_old_articles() -> int:
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=MAX_ARTICLE_AGE_DAYS)
+    with get_session() as session:
+        result = session.execute(delete(Article).where(Article.published_at < cutoff))
+    deleted = result.rowcount or 0
+    if deleted:
+        LOGGER.info("Pruned %s articles older than %s days", deleted, MAX_ARTICLE_AGE_DAYS)
+    return deleted
 
 
 app = FastAPI(title=APP_NAME)
