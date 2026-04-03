@@ -13,3 +13,7 @@ def test_web_routes_respond() -> None:
     assert "digest" in digest_payload
     assert "top_stories" in digest_payload["digest"]
     assert digest_payload["digest"]["window"] == "7d"
+    article_payload = client.get("/api/articles?window=24h").json()
+    if article_payload:
+        assert "impact_direction" in article_payload[0]
+        assert "importance_score" in article_payload[0]

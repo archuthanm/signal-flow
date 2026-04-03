@@ -155,7 +155,21 @@ class RuleBasedSummariser:
             focus_text = f"{focus_points[0]} and {focus_points[1]}"
         else:
             focus_text = f"{focus_points[0]}, {focus_points[1]}, and {focus_points[2]}"
-
+        if sector_display == "Macro / Rates":
+            return (
+                f"This matters for {sector_display.lower()} because it can shift the path investors price for "
+                f"policy, yields, and the dollar through {focus_text}."
+            )
+        if sector_display == "Banking":
+            return (
+                f"This matters for {sector_display.lower()} because it can change expectations for earnings, "
+                f"funding conditions, and balance-sheet risk through {focus_text}."
+            )
+        if sector_display == "Fintech":
+            return (
+                f"This matters for {sector_display.lower()} because it can affect payments volumes, regulatory "
+                f"pressure, and growth expectations through {focus_text}."
+            )
         return (
             f"This matters for {sector_display.lower()} because it changes the market read on "
             f"{focus_text} and could affect positioning, expectations, or sentiment."

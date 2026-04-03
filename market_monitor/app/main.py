@@ -24,6 +24,7 @@ from market_monitor.app.database import get_session, init_db
 from market_monitor.app.filters.dedupe import DuplicateDetector
 from market_monitor.app.filters.relevance import RelevanceScorer
 from market_monitor.app.models import Article, ArticlePayload
+from market_monitor.app.processors.investor_analysis import InvestorAnalyzer
 from market_monitor.app.processors.summariser import RuleBasedSummariser
 from market_monitor.app.processors.tagger import build_tags
 from market_monitor.app.reports.digest_generator import DigestGenerator
@@ -44,6 +45,7 @@ def ingest_articles() -> dict[str, int]:
     duplicate_detector = DuplicateDetector()
     scorer = RelevanceScorer()
     summariser = RuleBasedSummariser()
+    analyzer = InvestorAnalyzer()
 
     stats = {"collected": 0, "inserted": 0, "duplicates": 0, "relevant": 0}
     articles = collector.collect()
@@ -70,15 +72,24 @@ def ingest_articles() -> dict[str, int]:
             relevance = scorer.score(payload)
             payload.sector = relevance.sector
             payload.relevance_score = relevance.score
-            payload.summary, payload.why_it_matters = summariser.summarise(
-                payload, relevance.matched_keywords
+            summary, why_it_matters = summariser.summarise(payload, relevance.matched_keywords)
+            analysis = analyzer.analyse(
+                ArticlePayload(
+                    title=payload.title,
+                    source=payload.source,
+                    url=payload.url,
+                    published_at=payload.published_at,
+                    description=payload.description,
+                    content=payload.content,
+                    sector=payload.sector,
+                    relevance_score=payload.relevance_score,
+                )
             )
-            payload.tags = build_tags(
+            tags = build_tags(
                 payload.title,
                 payload.description,
                 relevance.matched_keywords,
             )
-
             if relevance.score >= MIN_RELEVANCE_FOR_DIGEST and relevance.sector:
                 stats["relevant"] += 1
 
@@ -91,9 +102,16 @@ def ingest_articles() -> dict[str, int]:
                 content=payload.content,
                 sector=payload.sector,
                 relevance_score=payload.relevance_score,
-                summary=payload.summary,
-                why_it_matters=payload.why_it_matters,
-                tags=", ".join(payload.tags) if payload.tags else None,
+                summary=summary,
+                why_it_matters=why_it_matters,
+                tags=", ".join(tags) if tags else None,
+                event_type=analysis.event_type,
+                impacted_assets=", ".join(analysis.impacted_assets) if analysis.impacted_assets else None,
+                impact_direction=analysis.direction,
+                impact_confidence=analysis.confidence,
+                importance_score=analysis.importance_score,
+                impact_rationale=analysis.rationale,
+                enrichment_provider="heuristic",
                 is_duplicate=False,
                 duplicate_reason=reason,
             )
@@ -134,10 +152,49 @@ def serialise_article(article: Article) -> dict[str, object]:
     )
     matched_keywords: list[str] = []
     summariser = RuleBasedSummariser()
-    summary, why_it_matters = summariser.summarise(payload, matched_keywords)
-    if article.source and article.source.lower() in summary.lower():
-        summary = title
+    analyzer = InvestorAnalyzer()
+    summary = article.summary
+    why_it_matters = article.why_it_matters
+    if not summary or not why_it_matters:
+        summary, why_it_matters = summariser.summarise(payload, matched_keywords)
+        if article.source and article.source.lower() in summary.lower():
+            summary = title
     tags = article.tags or ", ".join(build_tags(title, description or None, matched_keywords)) or None
+    stored_assets = [item.strip() for item in (article.impacted_assets or "").split(",") if item.strip()]
+    if (
+        article.event_type
+        and article.impact_direction
+        and article.impact_confidence is not None
+        and article.importance_score is not None
+        and article.impact_rationale
+    ):
+        event_type = article.event_type
+        impacted_assets = stored_assets
+        impact_direction = article.impact_direction
+        impact_confidence = article.impact_confidence
+        importance_score = article.importance_score
+        impact_rationale = article.impact_rationale
+    else:
+        analysis = analyzer.analyse(
+            ArticlePayload(
+                title=title,
+                source=article.source,
+                url=article.url,
+                published_at=article.published_at,
+                description=description or None,
+                content=content or None,
+                sector=article.sector,
+                relevance_score=article.relevance_score,
+                summary=summary,
+                why_it_matters=why_it_matters,
+            )
+        )
+        event_type = analysis.event_type
+        impacted_assets = analysis.impacted_assets
+        impact_direction = analysis.direction
+        impact_confidence = analysis.confidence
+        importance_score = analysis.importance_score
+        impact_rationale = analysis.rationale
 
     return {
         "id": article.id,
@@ -151,6 +208,12 @@ def serialise_article(article: Article) -> dict[str, object]:
         "summary": summary,
         "why_it_matters": why_it_matters,
         "tags": tags,
+        "event_type": event_type,
+        "impacted_assets": impacted_assets,
+        "impact_direction": impact_direction,
+        "impact_confidence": impact_confidence,
+        "importance_score": importance_score,
+        "impact_rationale": impact_rationale,
     }
 
 

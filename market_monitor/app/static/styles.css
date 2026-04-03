@@ -366,6 +366,49 @@ button.secondary:hover {
   flex-wrap: wrap;
 }
 
+.signal-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.signal-pill {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.signal-pill.positive {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success);
+  border-color: rgba(74, 222, 128, 0.25);
+}
+
+.signal-pill.negative {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+.signal-pill.mixed {
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.25);
+}
+
+.signal-pill.neutral {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
 .tag-pill {
   background: var(--bg-subtle);
   border: 1px solid var(--border);
@@ -548,6 +591,45 @@ button.secondary:hover {
   font-weight: 600;
 }
 
+.impact-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.impact-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  padding: 1rem;
+}
+
+.impact-card h4 {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.impact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.impact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.84rem;
+  color: var(--ink-main);
+}
+
+.impact-meta {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
 .digest-themes .tag-pill {
   background: var(--success-bg);
   color: var(--success);
@@ -584,6 +666,10 @@ button.secondary:hover {
 
 @media (max-width: 640px) {
   .digest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .impact-board {
     grid-template-columns: 1fr;
   }
 

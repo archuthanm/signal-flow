@@ -30,6 +30,13 @@ class Article(Base):
     summary: Mapped[str | None] = mapped_column(Text)
     why_it_matters: Mapped[str | None] = mapped_column(Text)
     tags: Mapped[str | None] = mapped_column(String(512))
+    event_type: Mapped[str | None] = mapped_column(String(64))
+    impacted_assets: Mapped[str | None] = mapped_column(String(512))
+    impact_direction: Mapped[str | None] = mapped_column(String(32))
+    impact_confidence: Mapped[float | None] = mapped_column(Float)
+    importance_score: Mapped[int | None] = mapped_column(Integer)
+    impact_rationale: Mapped[str | None] = mapped_column(Text)
+    enrichment_provider: Mapped[str | None] = mapped_column(String(32))
     is_duplicate: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     duplicate_reason: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(

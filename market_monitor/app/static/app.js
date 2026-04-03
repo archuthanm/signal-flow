@@ -41,6 +41,7 @@ function renderArticles(articles) {
     const tags = article.tags ? article.tags.split(",").map((tag) => tag.trim()).filter(Boolean) : [];
     const preview = article.summary || article.description || article.title;
     const whyItMatters = article.why_it_matters || "Worth monitoring as broader market context.";
+    const impactedAssets = article.impacted_assets || [];
 
     el.innerHTML = `
       <h3><a href="${article.url}" target="_blank" rel="noreferrer">${article.title}</a></h3>
@@ -52,8 +53,16 @@ function renderArticles(articles) {
         <span style="color: var(--accent); font-weight: 600;">Score: ${article.relevance_score.toFixed(1)}</span>
         ${article.sector ? `<span class="dot">•</span><span>${article.sector}</span>` : ""}
       </div>
+      <div class="signal-row">
+        <span class="signal-pill ${article.impact_direction}">${article.impact_direction}</span>
+        <span class="signal-pill">${article.event_type.replaceAll("_", " ")}</span>
+        <span class="signal-pill">importance ${article.importance_score}/10</span>
+        <span class="signal-pill">confidence ${(article.impact_confidence * 100).toFixed(0)}%</span>
+      </div>
+      ${impactedAssets.length ? `<div class="signal-row">${impactedAssets.map((asset) => `<span class="tag-pill">${asset}</span>`).join("")}</div>` : ""}
       <p>${preview}</p>
       <div class="feed-takeaway"><strong>System Takeaway:</strong> ${whyItMatters}</div>
+      <div class="feed-takeaway"><strong>Market Impact:</strong> ${article.impact_rationale}</div>
       <div class="tags">
         ${tags.map((tag) => `<span class="tag-pill">${tag}</span>`).join("")}
       </div>
@@ -73,14 +82,63 @@ async function refreshArticles() {
 function renderDigestStory(article) {
   const tags = article.tags ? article.tags.split(",").map((tag) => tag.trim()).filter(Boolean) : [];
   const preview = article.summary || article.description || article.title;
+  const impactedAssets = article.impacted_assets || [];
   return `
     <article class="story-item">
       <h4><a href="${article.url}" target="_blank" rel="noreferrer">${article.title}</a></h4>
       <span class="story-meta">${article.source} <span class="dot">|</span> ${formatDate(article.published_at)} <span class="dot">|</span> <span style="color: var(--accent);">Score: ${article.relevance_score.toFixed(1)}</span></span>
+      <div class="signal-row">
+        <span class="signal-pill ${article.impact_direction}">${article.impact_direction}</span>
+        <span class="signal-pill">${article.event_type.replaceAll("_", " ")}</span>
+        <span class="signal-pill">importance ${article.importance_score}/10</span>
+        ${impactedAssets.length ? `<span class="signal-pill">${impactedAssets[0]}</span>` : ""}
+      </div>
       <p>${preview}</p>
       ${article.why_it_matters ? `<div class="feed-takeaway"><strong>Why it matters:</strong> ${article.why_it_matters}</div>` : ""}
+      ${article.impact_rationale ? `<div class="feed-takeaway"><strong>Likely market impact:</strong> ${article.impact_rationale}</div>` : ""}
       ${tags.length ? `<div class="tags">${tags.map((tag) => `<span class="tag-pill">${tag}</span>`).join("")}</div>` : ""}
     </article>
+  `;
+}
+
+function buildImpactBoard(digest) {
+  const allArticles = Object.values(digest.sectors).flatMap((sector) => sector.articles || []);
+  const buckets = { positive: [], negative: [] };
+
+  for (const article of allArticles) {
+    const asset = (article.impacted_assets || [])[0];
+    if (!asset) continue;
+    if (article.impact_direction === "positive" || article.impact_direction === "negative") {
+      buckets[article.impact_direction].push(article);
+    }
+  }
+
+  const renderBucket = (label, key) => {
+    const items = buckets[key]
+      .sort((a, b) => (b.importance_score || 0) - (a.importance_score || 0))
+      .slice(0, 4);
+    return `
+      <div class="impact-card">
+        <h4>${label}</h4>
+        ${items.length ? `
+          <div class="impact-list">
+            ${items.map((article) => `
+              <div class="impact-item">
+                <span>${(article.impacted_assets || [])[0]}</span>
+                <span class="impact-meta">${article.event_type.replaceAll("_", " ")} · ${article.importance_score}/10</span>
+              </div>
+            `).join("")}
+          </div>
+        ` : `<div class="empty-state solid">No strong ${key} signals.</div>`}
+      </div>
+    `;
+  };
+
+  return `
+    <div class="impact-board">
+      ${renderBucket("Positive Signals", "positive")}
+      ${renderBucket("Negative Signals", "negative")}
+    </div>
   `;
 }
 
@@ -128,6 +186,13 @@ function renderDigest(digest) {
         <span class="count count-accent">${digest.top_stories.length}</span>
       </div>
       ${digest.top_stories.length ? digest.top_stories.map(renderDigestStory).join("") : "<div class='empty-state'>No high-relevance stories available.</div>"}
+    </div>
+
+    <div class="report-section">
+      <div class="report-header">
+        <h3>Impact Board</h3>
+      </div>
+      ${buildImpactBoard(digest)}
     </div>
 
     <div class="report-section">
